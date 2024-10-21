@@ -24,6 +24,9 @@ public class Position {
         this.timestamp = timestamp;
     }
 
+    public Position(Float latitude, Float longitude, Timestamp timestamp) {
+    }
+
     public int getId() {
         return id;
     }

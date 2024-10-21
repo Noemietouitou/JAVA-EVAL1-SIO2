@@ -1,9 +1,11 @@
 package com.sio;
 
+import com.sio.models.Position;
 import com.sio.models.Target;
 import com.sio.services.TargetService;
 import com.sio.services.TrackingService;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -39,26 +41,84 @@ public class Main {
                     System.out.println("List targets");
                     System.out.println("-----------------------------------------------");
                     //TODO : Get all targets from the database and print them
+
+                    targets = targetService.getTargets();
+                    int nbTargets = targets.size();
+                    System.out.println( nbTargets+ " targets found" );
+                    System.out.println("-----------------------------------------------");
+
+                    if (nbTargets == 0) {
+                        System.out.println("No targets found.");
+                    } else {
+                        for (Target target : targets) {
+                            System.out.println(target.getCodeName() + " : "+ target.getName() + " : " + target.getPositions().size() + " positions");
+                        }
+                    }
                     System.out.println("-----------------------------------------------");
                     break;
+
+
                 case 2:
                     System.out.println("Acquire targets positions");
                     System.out.println("-----------------------------------------------");
                     //TODO : Acquire all targets positions
+                    trackingService.updateTargetsPositions();
                     System.out.println("-----------------------------------------------");
                     break;
                 case 3:
                     System.out.println("Add target");
                     System.out.println("-----------------------------------------------");
                     //TODO : Add a target
-                    System.out.println("-----------------------------------------------");
+
+                    System.out.println("\nEnter new codeName :");
+                    String codeName = scanner.nextLine();
+                    System.out.println("\nEnter target's fullname :");
+                    String name = scanner.nextLine();
+
+                    targetService.addTarget(codeName, name);
                     break;
+
                 case 4:
                     System.out.println("Delete target");
                     System.out.println("-----------------------------------------------");
                     //TODO : Delete a target
+
+                    ArrayList<Target> lestargets = targetService.getTargets();
+
+                    if (lestargets.isEmpty()) {
+                        System.out.println("No targets available to delete.");
+                    } else {
+
+                        for (int i = 0; i < lestargets.size(); i++) {
+                            System.out.println((i + 1) + ". " + lestargets.get(i).getCodeName() + " (Hash: " + lestargets.get(i).getHash() + ")");
+                        }
+
+                        System.out.println("Enter the number of the target to delete (enter 0 to leave delete mode):");
+                        int choice = scanner.nextInt();
+                        scanner.nextLine();
+
+                        if (choice == 0) {
+                            System.out.println("Exiting delete mode.");
+                        } else if (choice > 0 && choice <= lestargets.size()) {
+                            // Suppression de la cible sélectionnée
+                            Target targetToDelete = lestargets.get(choice - 1);
+                            //boolean deletionSuccess = targetService.deleteTarget(targetToDelete.getHash());
+                            boolean deletionSuccess = true ;
+
+
+                            if (deletionSuccess) {
+                                System.out.println("Deleting target "+ targetToDelete.getName());
+                            } else {
+                                System.out.println("Failed to delete target. Please try again.");
+                            }
+                        } else {
+                            System.out.println("Invalid selection. Please try again.");
+                        }
+                    }
+
                     System.out.println("-----------------------------------------------");
                     break;
+
                 case 0:
                     printDisconnectBanner();
                     System.out.println(RESET);

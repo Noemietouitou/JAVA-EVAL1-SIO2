@@ -1,0 +1,22 @@
+meta {
+  name: Delete Target
+  type: http
+  seq: 6
+}
+
+delete {
+  url: http://localhost:8080/api/v1/target/:hash
+  body: json
+  auth: none
+}
+
+params:path {
+  hash: 9d2abae714235f46bd34b5eb31e48d9775230e17cfc7c6165a0e221e08ce0e23
+}
+
+body:json {
+  {
+    "code_name":"Marshmallow Bob",
+    "name":"Jean michel cible"
+  }
+}

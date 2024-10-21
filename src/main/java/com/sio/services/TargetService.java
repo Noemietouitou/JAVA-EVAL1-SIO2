@@ -1,5 +1,6 @@
 package com.sio.services;
 
+import com.sio.apis.MockChrevTzyonApiClient;
 import com.sio.models.Target;
 import com.sio.repositories.PositionRepository;
 import com.sio.repositories.TargetRepository;
@@ -23,7 +24,13 @@ public class TargetService {
      */
     public ArrayList<Target> getTargets() {
       //TODO implements this method
-        return new ArrayList<>();
+
+        ArrayList<Target> targets = tRepository.findAll();
+        for (Target target : targets) {
+            target.setPositions(pRepository.findByTargetHash(target.getHash()));
+        }
+
+        return targets;
     }
 
     /**
@@ -34,6 +41,27 @@ public class TargetService {
      */
     public void addTarget(String codename, String name) {
         //TODO implements this method
+
+        String hash = generateHash(codename);
+        Target newTarget = new Target();
+        newTarget.setHash(hash);
+        newTarget.setName(name);
+        newTarget.setCodeName(codename);
+
+        MockChrevTzyonApiClient apiClient = new MockChrevTzyonApiClient();
+        boolean apiSuccess = apiClient.addTarget(newTarget);
+
+        if (apiSuccess) {
+            tRepository.create(newTarget);
+            System.out.println("Target successfully added. You will now have to wait 60 seconds before the target is available for position acquisition.");
+        } else {
+            System.out.println("Target not added.");
+        }
+    }
+
+    // Je rajoute une methode pour generer un hash afin de faciliter l'entree de la target en base de donnees
+    private String generateHash(String codename) {
+        return String.valueOf(codename.hashCode());
     }
 
     /**
@@ -42,6 +70,16 @@ public class TargetService {
      */
     public void deleteTarget(Target t) {
         //TODO implements this method
+        MockChrevTzyonApiClient apiClient = new MockChrevTzyonApiClient();
+        boolean apiSuccess = apiClient.deleteTarget(t);
+
+        if (apiSuccess) {
+            pRepository.deleteByTargetHash(t.getHash());
+            tRepository.delete(t);
+            System.out.println("Target and its positions were successfully deleted.");
+        } else {
+            System.out.println("Error: target not deleted from API.");
+        }
     }
 
 }
