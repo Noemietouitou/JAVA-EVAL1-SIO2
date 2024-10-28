@@ -1,9 +1,11 @@
 package com.sio;
 
+import com.sio.apis.MockChrevTzyonApiClient;
 import com.sio.models.Position;
 import com.sio.models.Target;
 import com.sio.services.TargetService;
 import com.sio.services.TrackingService;
+import org.json.simple.JSONObject;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -42,16 +44,26 @@ public class Main {
                     System.out.println("-----------------------------------------------");
                     //TODO : Get all targets from the database and print them
 
-                    targets = targetService.getTargets();
-                    int nbTargets = targets.size();
-                    System.out.println( nbTargets+ " targets found" );
+                    MockChrevTzyonApiClient apiClient = new MockChrevTzyonApiClient();
+                    ArrayList<JSONObject> apiTargets = apiClient.getTargets();
+
+                    for (JSONObject jsonTarget : apiTargets) {
+                        String codeName = (String) jsonTarget.get("code_name");
+                        String name = (String) jsonTarget.get("name");
+
+                        targetService.addTarget(codeName, name);
+                    }
+
+                    ArrayList<Target> allTargets = targetService.getTargets();
+                    int nbTargets = allTargets.size();
+                    System.out.println(nbTargets + " targets found.");
                     System.out.println("-----------------------------------------------");
 
                     if (nbTargets == 0) {
                         System.out.println("No targets found.");
                     } else {
-                        for (Target target : targets) {
-                            System.out.println(target.getCodeName() + " : "+ target.getName() + " : " + target.getPositions().size() + " positions");
+                        for (Target target : allTargets) {
+                            System.out.println(target.getCodeName() + " : " + target.getName() + " : " + target.getPositions().size() + " positions");
                         }
                     }
                     System.out.println("-----------------------------------------------");
@@ -90,26 +102,25 @@ public class Main {
                     } else {
 
                         for (int i = 0; i < lestargets.size(); i++) {
-                            System.out.println((i + 1) + ". " + lestargets.get(i).getCodeName() + " (Hash: " + lestargets.get(i).getHash() + ")");
+                            System.out.println((i + 1) + ". " + lestargets.get(i).getName());
                         }
 
-                        System.out.println("Enter the number of the target to delete (enter 0 to leave delete mode):");
+                        System.out.println("Choose a target to delete (enter 0 to leave delete mode):");
                         int choice = scanner.nextInt();
                         scanner.nextLine();
 
                         if (choice == 0) {
                             System.out.println("Exiting delete mode.");
                         } else if (choice > 0 && choice <= lestargets.size()) {
-                            // Suppression de la cible sélectionnée
                             Target targetToDelete = lestargets.get(choice - 1);
-                            //boolean deletionSuccess = targetService.deleteTarget(targetToDelete.getHash());
-                            boolean deletionSuccess = true ;
+                            System.out.println("Deleting target " + targetToDelete.getName());
 
+                            boolean deletionSuccess = targetService.deleteTarget(targetToDelete);
 
                             if (deletionSuccess) {
-                                System.out.println("Deleting target "+ targetToDelete.getName());
+                                System.out.println("Target " + targetToDelete.getName() + " deleted successfully.");
                             } else {
-                                System.out.println("Failed to delete target. Please try again.");
+                                System.out.println("Failed to delete target " + targetToDelete.getName() + ".");
                             }
                         } else {
                             System.out.println("Invalid selection. Please try again.");

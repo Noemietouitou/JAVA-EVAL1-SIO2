@@ -9,6 +9,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 
 public class TrackingService {
@@ -24,49 +25,42 @@ public class TrackingService {
 
     /**
      * Update the positions of all targets
-     * If the target does not exist in the database, create it
+     * If the target does not exist in the database, creatge it
      * If the target exists in the database, add its new position
      * Print the following message after the position is successfully acquired : - {target code name} : Position successfully acquired
      * Print the following message after the position is not acquired (API has not yet acquired the position : - {target code name} : Position not acquired
      */
     public void updateTargetsPositions() {
         //TODO implements this method
-        ArrayList<JSONObject> apiTargets = mockChrevTzyonApiClient.getTargets();
+        MockChrevTzyonApiClient apiClient = new MockChrevTzyonApiClient();
+        ArrayList<JSONObject> targets = apiClient.getTargets();
+        ArrayList<Target> lesTargets = targetRepository.findAll();
 
-        for (JSONObject apiTarget : apiTargets) {
-            String targetHash = (String) apiTarget.get("hash");
-            String codeName = (String) apiTarget.get("codeName");
-            String name = (String) apiTarget.get("name");
+        if (targets != null) {
+            for (JSONObject targetJson : targets) {
+                String hash = (String) targetJson.get("hash");
+                Target dbTarget = lesTargets.stream().filter(t -> t.getHash().equals(hash)).findFirst().orElse(null);
 
-            if (targetHash == null || codeName == null || codeName.isEmpty()) {
-                System.out.println("Invalid target data for hash: " + targetHash);
-                continue;
+                if (dbTarget != null) {
+                    JSONArray positionsJson = (JSONArray) targetJson.get("positions");
+
+                    for (Object posObj : positionsJson) {
+                        JSONObject posJson = (JSONObject) posObj;
+                        double latitude = (double) posJson.get("latitude");
+                        double longitude = (double) posJson.get("longitude");
+
+                        Instant instant = Instant.parse(posJson.get("Time").toString());
+                        Timestamp timestamp = Timestamp.from(instant);
+
+                        Position newPosition = new Position(dbTarget, dbTarget.getLastPosition().getLatitude(), dbTarget.getLastPosition().getLongitude(), timestamp);
+                        positionRepository.create(newPosition);
+                    }
+                } else {
+                    System.out.println("Cible avec le hash " + hash + " non trouvée en base de données.");
+                }
             }
-
-            Target target = targetRepository.findByHash(targetHash);
-            if (target == null) {
-                target = new Target(targetHash, codeName, name);
-                targetRepository.create(target);
-            }
-
-            JSONArray positionsArray = (JSONArray) apiTarget.get("positions");
-            if (positionsArray == null || positionsArray.isEmpty()) {
-                System.out.println("- " + target.getCodeName() + " : no positions");
-                continue;
-            }
-
-            for (Object positionObj : positionsArray) {
-                JSONObject positionJson = (JSONObject) positionObj;
-                Float latitude = ((Number) positionJson.get("latitude")).floatValue();
-                Float longitude = ((Number) positionJson.get("longitude")).floatValue();
-                Timestamp timestamp = Timestamp.valueOf((String) positionJson.get("timestamp"));
-
-                Position newPosition = new Position(target, latitude, longitude, timestamp);
-                positionRepository.create(newPosition);
-
-                System.out.println("- " + target.getCodeName() +
-                        (newPosition.getId() != 0 ? " Position successfully acquired" : " Position not acquired "));
-            }
+        } else {
+            System.err.println("Erreur lors de la récupération des cibles.");
         }
     }
 }

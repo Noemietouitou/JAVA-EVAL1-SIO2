@@ -7,6 +7,9 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 
@@ -47,27 +50,23 @@ public class MockChrevTzyonApiClient {
     public boolean addTarget(Target target) {
         //TODO : Implement this method
         try {
-            JSONObject json = new JSONObject();
-            json.put("codeName", target.getCodeName());
-            json.put("name", target.getName());
-            String jsonBody = json.toString();
+            String jsonBody = String.format("{\n  \"code_name\":\"%s\",\n  \"name\":\"%s\"\n}",
+                    target.getCodeName(), target.getName());
 
-            HttpResponse<String> response = HttpRequestBuilder.post(
-                    cm.getProperty("api.url") + "/target/add",
-                    jsonBody
-            );
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://localhost:8080/api/v1/target/add"))
+                    .header("Content-Type", "application/json")
+                    .method("POST", HttpRequest.BodyPublishers.ofString(jsonBody))
+                    .build();
+
+            HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                JSONObject responseBody = (JSONObject) parser.parse(response.body());
-                String generatedHash = (String) responseBody.get("hash");
-                target.setHash(generatedHash);
+                System.out.println("Réponse de l'API : " + response.body());
                 return true;
-            } else {
-                System.err.println("Failed to add target. Status code: " + response.statusCode());
-                System.err.println("Response body: " + response.body());
             }
         } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
+            System.err.println("Erreur lors de l'ajout de la cible : " + e.getMessage());
         }
         return false;
     }
@@ -83,10 +82,7 @@ public class MockChrevTzyonApiClient {
             HttpResponse<String> response = HttpRequestBuilder.delete(
                     cm.getProperty("api.url") + "/target/" + target.getHash()
             );
-            if (response.statusCode() == 200) {
-                JSONObject jsonObject = (JSONObject) parser.parse(response.body());
-                return (boolean) jsonObject.get("success");
-            }
+            return response.statusCode() == 200;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
         }
@@ -101,10 +97,9 @@ public class MockChrevTzyonApiClient {
     private String buildJsonStringFromObject(Target t){
         //TODO : Implement this method
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("hash",t.getHash());
-        jsonObject.put("codeName",t.getCodeName());
-        jsonObject.put("name",t.getName());
-        jsonObject.put("positions",t.getPositions());
+        jsonObject.put("hash", t.getHash());
+        jsonObject.put("codeName", t.getCodeName());
+        jsonObject.put("name", t.getName());
         return jsonObject.toString();
     }
 }
